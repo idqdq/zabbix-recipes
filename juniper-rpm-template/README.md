@@ -1,4 +1,4 @@
-If you have a Juniper network gears and want to monitor some SLAs over your network links
+If you have any Juniper network gears and want to monitor some SLAs over your network links
 you probably come up with an RPM (Real time performance monitoring) solution
 
 This template will help you to transmit RPM values from a Juniper devices to Zabbix
@@ -43,7 +43,7 @@ services {
 }
 ```
 
-All over steps should be performed on a Zabbix Server
+All over steps should be performed on ypur Zabbix Server
 
   - move `discovery_juniper_rpm.py` to your /zabbix/external_scripts/path (in my case (Ubuntu 14.04) it is located in /etc/zabbix/externalscripts/)
   - make chmod +x and chown zabbix:zabbix
@@ -51,6 +51,9 @@ All over steps should be performed on a Zabbix Server
   - apply template to a Juniper host
   - make sure you have a macro {$SNMP_COMMUNITY} set to the host
 
-5 minutes later the discovery script should find RPM items, then hand them over to Zabbix, 
-also it will create triggers graphs and even a screen
+5 minutes later the discovery script should find RPM items and propagate items, triggers, graphs etc for every RPM test
 
+Enjoy
+
+P.S. Take a look at timing on item prototypes. 
+Those extremely low intervals were suitable for my case but may not be applicable for you
