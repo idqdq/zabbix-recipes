@@ -5,7 +5,8 @@ This template will help you to transmit RPM values from a Juniper devices to Zab
 
 To do that first you have to configure RPM tests on a Juniper boxes
 Im my case the config looks as follows:
-===================================================================
+
+```sh
 services {
     rpm {
         probe Bee {
@@ -40,16 +41,15 @@ services {
         }
     }
 }
-========================================================================
+```
 
 All over steps should be performed on a Zabbix Server
 
-1. move discovery_juniper_rpm.py to your /zabbix/external_scripts/path
-in my case (Ubuntu 14.04) it is located in /etc/zabbix/externalscripts/
-2. make chmod +x and chown zabbix:zabbix
-3. import template template-juniper-rpm.xls
-4. apply template to a Juniper host
-5. make sure you have a macro {$SNMP_COMMUNITY} set to the host
+  - move discovery_juniper_rpm.py to your /zabbix/external_scripts/path (in my case (Ubuntu 14.04) it is located in /etc/zabbix/externalscripts/)
+  - make chmod +x and chown zabbix:zabbix
+  - import template template-juniper-rpm.xls
+  - apply template to a Juniper host
+  - make sure you have a macro {$SNMP_COMMUNITY} set to the host
 
 5 minutes later the discovery script should find RPM items, then hand them over to Zabbix, 
 also it will create triggers graphs and even a screen
