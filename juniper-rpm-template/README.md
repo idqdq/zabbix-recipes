@@ -45,9 +45,9 @@ services {
 
 All over steps should be performed on a Zabbix Server
 
-  - move discovery_juniper_rpm.py to your /zabbix/external_scripts/path (in my case (Ubuntu 14.04) it is located in /etc/zabbix/externalscripts/)
+  - move `discovery_juniper_rpm.py` to your /zabbix/external_scripts/path (in my case (Ubuntu 14.04) it is located in /etc/zabbix/externalscripts/)
   - make chmod +x and chown zabbix:zabbix
-  - import template template-juniper-rpm.xls
+  - import template `template-juniper-rpm.xls`
   - apply template to a Juniper host
   - make sure you have a macro {$SNMP_COMMUNITY} set to the host
 
