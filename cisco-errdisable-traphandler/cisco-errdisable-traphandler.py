@@ -40,17 +40,17 @@ from configparser import ConfigParser
 from zabbix.api import ZabbixAPI
 #from mysql.connector import MySQLConnection, Error
 
-def read_config(section, filename='cisco-errdisable-traphandler-config.ini'):
-    """ Read database configuration file and return a dictionary object
+def read_config(filename, section):
+    """ Read a configuration file and return a dictionary object
     :param filename: name of the configuration file
-    :param section: section of database configuration
-    :return: a dictionary of database parameters
+    :param section: section of a configuration
+    :return: a dictionary of a configfile section parameters
     """
     # create parser and read ini configuration file
     parser = ConfigParser()
     parser.read(filename)
 
-    # get section, default to mysql
+    # get section
     db = {}
     if parser.has_section(section):
         items = parser.items(section)
@@ -79,18 +79,21 @@ def find_ifDesc_from_ifIndex(hostname, ifIndex, community="publices"):
         ifDescr = varBinds[0][1].prettyPrint()
         return ifDescr
 
-
+# find the path where the script is located to find a config.ini nearby
+dir_path = os.path.dirname(os.path.realpath(__file__))
+conf_file_name = dir_path + '/config.ini'
 
 # fetch config parameters
-snmp_config = read_config(section = 'snmp')
-api_config = read_config(section = 'api')
-logging_config = read_config(section = 'logging')
-zabbix_config = read_config(section='zabbix')
+snmp_config = read_config(conf_file_name, section = 'snmp')
+api_config = read_config(conf_file_name, section = 'api')
+logging_config = read_config(conf_file_name, section = 'logging')
+zabbix_config = read_config(conf_file_name, section='zabbix')
 #db_config = read_config(section = 'mysql')
 
 # set logging handler
 handler = logging.handlers.WatchedFileHandler(os.environ.get("LOGFILE", logging_config['logfile']))
-formatter = logging.Formatter(logging.BASIC_FORMAT)
+#formatter = logging.Formatter(logging.BASIC_FORMAT)
+formatter = logging.Formatter( '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 root = logging.getLogger()
 root.setLevel(os.environ.get("LOGLEVEL", logging_config['loglevel']))
@@ -104,7 +107,7 @@ hostname = inp.readline().strip()
 
 # the second line contains an IP address that should be fetched by regexp
 str = inp.readline()
-m = re.search(">\[(.*)\]:", str)
+m = re.search("\[(.*)\]:[0-9]+->", str)
 ip = m.group(1)
 
 try:
@@ -120,6 +123,7 @@ logging.debug("hostname is: %s", hostname)
 logging.debug("IP address is: %s", ip)
 logging.debug("trap info is: %s", trapstr)
 
+logging.debug("api_config: %s, %s, %si", api_config['zabbix_url'], api_config['zabbix_user'], api_config['zabbix_passwd'])
 
 # using ZabbixAPI check if a hostname and a corresponding item exists
 z = ZabbixAPI(api_config['zabbix_url'], user=api_config['zabbix_user'], password=api_config['zabbix_passwd'])
@@ -267,4 +271,3 @@ except subprocess.CalledProcessError as e:
 #   exit(1)
 
 """
-
