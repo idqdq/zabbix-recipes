@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-the script is a traphandler that is being called from snmptrapd daemon
+the script is a traphandler that is being called from an snmptrapd daemon
 script does process snmp err-disable traps from cisco gears and hand it over to Zabbix.
 Traps comes from snmptrapd in one of the following formats:
 ------------------------------------------------------------------
@@ -30,7 +30,7 @@ CISCO-PORT-SECURITY-MIB::cpsIfSecureLastMacAddress.10002 0:15:99:64:f5:2f
 script first checks if hostname exists in Zabbix (using ZabbixAPI)
 second it finds the key that handles traps (defined in a trapkeyname config option)
 then convert ifIndex (10640 in the first example above) to ifName by issuing an snmp query toward the catalyst
-and finally using external zabbix_sender call it puts ifName as a new value to the given host and the key
+and finally puts ifName and key parameters to the given host using external zabbix_sender calls 
 """
 
 import sys, os, re, subprocess
@@ -88,11 +88,9 @@ snmp_config = read_config(conf_file_name, section = 'snmp')
 api_config = read_config(conf_file_name, section = 'api')
 logging_config = read_config(conf_file_name, section = 'logging')
 zabbix_config = read_config(conf_file_name, section='zabbix')
-#db_config = read_config(section = 'mysql')
 
 # set logging handler
 handler = logging.handlers.WatchedFileHandler(os.environ.get("LOGFILE", logging_config['logfile']))
-#formatter = logging.Formatter(logging.BASIC_FORMAT)
 formatter = logging.Formatter( '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 handler.setFormatter(formatter)
 root = logging.getLogger()
@@ -179,7 +177,7 @@ logging.info("ifName = %s", ifName)
 
 if ifName:
     # Zabix has a limitation (20 chars) of lenght of values that are being shown in LastValues and LastIssues sections of a FrontEnd
-    # lets strip FastEthernet0/2 to Fa0/2 and GigabitEthernet3/0/45 to Gi3/0/45 for a conviniency
+    # lets strip ifNames so names like FastEthernet0/2 and GigabitEthernet3/0/45 become Fa0/2 and Gi3/0/45 accordingly
     if (len(ifName) > 20):
         regex = "[A-Za-z]+(\d+\/.*\d+)$"
         m = re.search(regex, ifName)
@@ -212,62 +210,3 @@ except subprocess.CalledProcessError as e:
 retstr = "trap {} from host {} has been handled successfully".format(trapkey, hostname)
 logging.info(retstr)
 
-
-"""
-# retrieve a hostname and an item from the zabbix DB (MySQL)
-select_ip = "SELECT h.hostid,h.host,i.ip FROM hosts as h, interface as i WHERE h.hostid = i.hostid AND i.ip = '{}'".format(ip)
-select_hostname = "SELECT h.hostid,h.host,i.ip FROM hosts as h, interface as i WHERE h.hostid = i.hostid AND h.host = '{}'".format(hostname)
-hostid = None
-
-try:
-    conn = MySQLConnection(**db_config)
-
-    cursor = conn.cursor(buffered=True)
-    cursor.execute(select_ip)  # trying to find out hostid by IP
-
-    row = cursor.fetchone()
-    if (row):
-        hostid = row[0]
-    else:
-        cursor.execute(select_hostname)
-        sqlres = cursor.fetchone()
-        if (sqlres):
-            hostid = sqlres[0]
-
-    if hostid:  # we already know a hostid so its time to retrieve a keyoidvalue
-        select_key = "SELECT itemid,description,key_ FROM items where hostid='{}' and '{}' like concat(key_,'%') order by length(key_) desc limit 1;".format(hostid, keyoidvaluenum)
-
-        cursor.execute(select_key)
-        sqlres = cursor.fetchone()
-        if (sqlres):
-            key = sqlres[0]
-            logging.debug("item with id=%s found", key)
-        else:
-            logging.error("there is no suitable items for hostname %s in Zabbix. Discarding trap...", hostname)
-            exit(1)
-
-    else:
-        logging.error("No such host in Zabbix. Discarding trap ...")
-        exit(1)
-
-except Error as error:
-    logging.exception(error)
-
-finally:
-    conn.close()
-    logging.debug("SQL connection closed.")
-
-# translate trapkey to a numeric OID format by calling an external command: snmptranslate
-# actually I made key_ name independent of OID so thats not usefull anymore
-# but it did work great. So I live it as an example and as a building block
-try:
-    p = subprocess.Popen([snmp_config['snmptranslate'], "-On", trapkey], stdout=subprocess.PIPE)
-    output, err = p.communicate()
-    keyoidvaluenum = output.rstrip()
-    logging.debug("keyoidvaluenum = %s", keyoidvaluenum)
-
-except subprocess.CalledProcessError as e:
-    logging.error(e)
-#   exit(1)
-
-"""
