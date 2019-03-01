@@ -215,14 +215,13 @@ elif mode is "restrict":
 
 if ifName:
     # Zabix has a limitation (20 chars) of lenght of values that are being shown in LastValues and LastIssues sections of a FrontEnd
-    # lets strip FastEthernet0/2 to Fa0/2 and GigabitEthernet3/0/45 to Gi3/0/45 for a conviniency
-    if (len(ifName) > 20):
-        regex = "[A-Za-z]+(\d+\/.*\d+)$"
-        m = re.search(regex, ifName)
-        if "Gigabit" in ifName:
-            ifName = "Gi" + m.group(1)
-        elif "Fast" in ifName:
-            ifName = "Fa" + m.group(1)
+    # lets strip FastEthernet0/2 to Fa0/2 and GigabitEthernet3/0/45 to Gi3/0/45 for a conviniency    
+    regex = "[A-Za-z]+(\d+\/.*\d+)$"
+    m = re.search(regex, ifName)
+    if "Gigabit" in ifName:
+        ifName = "Gi" + m.group(1)
+    elif "Fast" in ifName:
+        ifName = "Fa" + m.group(1)
 else:
     ifName = "Interface"
 
