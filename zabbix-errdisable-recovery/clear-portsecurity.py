@@ -1,9 +1,14 @@
 import sys
 import netaddr
 
-mac = None
+path = "/etc/zabbix/alertscripts/zabbix-errdisable-recovery/"
 vault_file = "defaults/creds.yml"
 vault_password_file = "vault/vault_password"
+
+vault_file = path + vault_file
+vault_password_file = path + vault_password_file
+
+mac = None
 commands = []
 
 # sys.argv
