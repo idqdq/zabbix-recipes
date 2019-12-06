@@ -7,6 +7,7 @@ vault_password_file = "vault/vault_password"
 
 vault_file = path + vault_file
 vault_password_file = path + vault_password_file
+log_file = path + "errdisable-recovery.log"
 
 mac = None
 commands = []
@@ -59,5 +60,8 @@ driver = napalm.get_network_driver("ios")
 
 with driver(hostname, vaultdata['user'], vaultdata['pass']) as device:
     device.open()
-    res = device.cli(commands)                                                                                                   
-    print(res)                                                                                                                   
+    res = device.cli(commands)
+    with open(log_file, "a+") as fl:
+#        print(res)
+        logstr = str(datetime.now()) + ' - the following commands were executed on a {}:\n\t - '.format(hostname) + '\n\t - '.join(commands) + '\n'
+        fl.write(logstr)
