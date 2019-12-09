@@ -14,15 +14,17 @@ commands = []
 
 # sys.argv
 
-if len(sys.argv) == 4 :
+if len(sys.argv) == 5 :
     ifname = sys.argv[1]
     hostname = sys.argv[2]    
     eventid = sys.argv[3]
-elif len(sys.argv) == 5 :
+    eventstatus = sys.argv[4]
+elif len(sys.argv) == 6 :
     ifname = sys.argv[1]
     mac_str = sys.argv[2]
     hostname = sys.argv[3]
     eventid = sys.argv[4]
+    eventstatus = sys.argv[5]
 
     mac_str = netaddr.EUI(sys.argv[2])
     mac_str.dialect = netaddr.mac_cisco
@@ -30,6 +32,12 @@ elif len(sys.argv) == 5 :
 else:
     msg = "Missing or invalid arguments"
     raise ValueError(msg)
+
+# if event.status is RESOLVED it means the script has already been executed 
+# but it was started by the zabbix server again because the previous start made it acknowledged
+# we must exit now to prevent event ack loop
+if eventstatus != 'PROBLEM':
+    sys.exit()
 
 command = "clear port-security sticky interface {}".format(ifname)
 commands.append(command)
@@ -66,21 +74,31 @@ with driver(hostname, vaultdata['user'], vaultdata['pass']) as device:
     with open(log_file, "a+") as fl:
         logstr = str(datetime.now()) + ' - the following commands were executed on a {}:\n\t - '.format(hostname) + '\n\t - '.join(commands) + '\n'
         fl.write(logstr)
+        
+        # we have just cleared a portsecurity event from a switch but there is a traphandler on the server algol that could still be processing the last trap from a switch
+        # so wait for 20 seconds before closing event to prevent any asyncronous behaviour
+        from time import sleep
+        print("Waiting for 30 sec...\n")
+        sleep(30)
 
-        # close the zabbix event using zabbixAPI 
+        # Closing the zabbix event using zabbixAPI 
         from pyzabbix.api import ZabbixAPI, ZabbixAPIException
         zapi = ZabbixAPI(url=vaultdata['zabbix_url'], user=vaultdata['zabbix_user'], password=vaultdata['zabbix_passwd'])
         if zapi:
+            fl.write("Closing Zabbix event {}\n".format(eventid))
             try:
                 result = zapi.do_request('event.acknowledge', 
                     {
                         "eventids": eventid,
                         "message": "PortSecurity Problem Resolved.",
-                        "action": 1 # <== 1 to close event, 0 for debug if no events that can be closed manually
+                        "action": 1
                     })
                 if result['id'] == '1':
                     print("Event closing: Success")
-                    fl.write("Zabbix event has been closed successfully\n")
+                    fl.write("Zabbix event {} has been closed successfully\n".format(eventid))
+                else:
+                    fl.write("Zabbix event {} closing Failed\n".format(eventid))
+                    
             except ZabbixAPIException as err:
-                fl.write(err)
+                fl.write(str(err))
                 print("Event closing: Fail")
