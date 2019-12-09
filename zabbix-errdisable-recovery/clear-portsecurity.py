@@ -55,7 +55,6 @@ with open(vault_password_file, "r") as fp:
     vaultdata = vault.load(open(vault_file).read())
 
 # vaultdata = { 'user': val1, 'pass': val2, 'zabbix_url': val3, 'zabbix_user': val4, 'zabbix_passwd': val5}    
-
 # execute cli commands on a cisco switch using NAPALM
 import napalm
 from datetime import datetime
@@ -69,16 +68,19 @@ with driver(hostname, vaultdata['user'], vaultdata['pass']) as device:
         fl.write(logstr)
 
         # close the zabbix event using zabbixAPI 
-        from zabbix.api import ZabbixAPI, ZabbixAPIException
-        with ZabbixAPI(url=vaultdata['zabbix_url'], user=vaultdata['zabbix_user'], password=vaultdata['zabbix_passwd']) as zapi:                
+        from pyzabbix.api import ZabbixAPI, ZabbixAPIException
+        zapi = ZabbixAPI(url=vaultdata['zabbix_url'], user=vaultdata['zabbix_user'], password=vaultdata['zabbix_passwd'])
+        if zapi:
             try:
                 result = zapi.do_request('event.acknowledge', 
                     {
                         "eventids": eventid,
                         "message": "PortSecurity Problem Resolved.",
-                        "action": 1
+                        "action": 1 # <== 1 to close event, 0 for debug if no events that can be closed manually
                     })
                 if result['id'] == '1':
-                    fl.write("Zabbix event has been closed successfully")
+                    print("Event closing: Success")
+                    fl.write("Zabbix event has been closed successfully\n")
             except ZabbixAPIException as err:
                 fl.write(err)
+                print("Event closing: Fail")
