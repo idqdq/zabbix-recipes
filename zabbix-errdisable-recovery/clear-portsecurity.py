@@ -76,10 +76,10 @@ with driver(hostname, vaultdata['user'], vaultdata['pass']) as device:
         fl.write(logstr)
         
         # we have just cleared a portsecurity event from a switch but there is a traphandler on the server algol that could still be processing the last trap from a switch
-        # so wait for 20 seconds before closing event to prevent any asyncronous behaviour
+        # so wait for 10 seconds before closing event to prevent any race conditions
         from time import sleep
-        print("Waiting for 30 sec...\n")
-        sleep(30)
+        print("Waiting for 10 sec...\n")
+        sleep(10)
 
         # Closing the zabbix event using zabbixAPI 
         from pyzabbix.api import ZabbixAPI, ZabbixAPIException
