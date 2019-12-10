@@ -189,12 +189,15 @@ logging.debug("keyname = %s", key)
 traplist = trapstr.split()
 
 if mode is "disable":
-    # Now lets find out an interface name (ifName)
-    # for the errdisable traps it can always be found within a penultimate word
+    # Now lets find an interface name (ifName)
+    # retrieve trapkey and trapvalue elements from a trapvalue string
+    # for SNMPv2-MIB::snmpTrapOID type traps they seems to be always 3rd and penultimate words respectively
+    trapkey = traplist[3]
     trapvalue = traplist[-2]
+    logging.debug("trapkey = %s", trapkey)
     logging.debug("trapvalue = %s", trapvalue)
 
-    # now fetch ifindex from a trapvalue by splitting trapvalue with dots "." into a list and taking a penultimate list value
+    # fetch ifindex from a trapvalue by splitting trapvalue with dots "." into a list and taking a penultimate list value
     ifIndex = trapvalue.split(".")[-2]
     logging.debug("ifIndex = %s", ifIndex)
 
@@ -212,7 +215,7 @@ elif mode is "restrict":
 
 if ifName:
     # Zabix has a limitation (20 chars) of lenght of values that are being shown in LastValues and LastIssues sections of a FrontEnd
-    # lets strip FastEthernet0/2 to Fa0/2 and GigabitEthernet3/0/45 to Gi3/0/45 for a conviniency
+    # lets strip FastEthernet0/2 to Fa0/2 and GigabitEthernet3/0/45 to Gi3/0/45 for a conviniency    
     regex = "[A-Za-z]+(\d+\/.*\d+)$"
     m = re.search(regex, ifName)
     if "Gigabit" in ifName:
@@ -247,6 +250,5 @@ except subprocess.CalledProcessError as e:
     logging.error(e)
     exit(1)
 
-retstr = "portsecurity trap from host {} has been handled successfully".format(hostname)
+retstr = "trap {} from host {} has been handled successfully".format(trapkey, hostname)
 logging.info(retstr)
-
