@@ -13,10 +13,9 @@ mac = None
 commands = []
 
 # sys.argv
-
 if len(sys.argv) == 5 :
     ifname = sys.argv[1]
-    hostname = sys.argv[2]    
+    hostname = sys.argv[2]
     eventid = sys.argv[3]
     eventstatus = sys.argv[4]
 elif len(sys.argv) == 6 :
@@ -46,7 +45,7 @@ if mac:
     command = "clear port-security sticky address {}".format(mac)
     commands.append(command)
 
-# vault
+# vault: fetch sensitive data from encoded vault
 import os
 from ansible_vault import Vault
 
@@ -63,42 +62,48 @@ with open(vault_password_file, "r") as fp:
     vaultdata = vault.load(open(vault_file).read())
 
 # vaultdata = { 'user': val1, 'pass': val2, 'zabbix_url': val3, 'zabbix_user': val4, 'zabbix_passwd': val5}    
+
 # execute cli commands on a cisco switch using NAPALM
 import napalm
 from datetime import datetime
 driver = napalm.get_network_driver("ios")
 
 with driver(hostname, vaultdata['user'], vaultdata['pass']) as device:
-    device.open()
-    res = device.cli(commands)
-    with open(log_file, "a+") as fl:
-        logstr = str(datetime.now()) + ' - the following commands were executed on a {}:\n\t - '.format(hostname) + '\n\t - '.join(commands) + '\n'
-        fl.write(logstr)
-        
-        # we have just cleared a portsecurity event from a switch but there is a traphandler on the server algol that could still be processing the last trap from a switch
-        # so wait for 10 seconds before closing event to prevent any race conditions
-        from time import sleep
-        print("Waiting for 10 sec...\n")
-        sleep(10)
+    try:
+        device.open()
+        res = device.cli(commands)
+        with open(log_file, "a+") as fl:
+            logstr = str(datetime.now()) + ' - the following commands were executed on a {}:\n\t - '.format(hostname) + '\n\t - '.join(commands) + '\n'
+            fl.write(logstr)
+                        
+            # Closing the zabbix event using zabbixAPI 
+            from pyzabbix.api import ZabbixAPI, ZabbixAPIException
+            from time import sleep            
+            
+            sleep(10) # waiting for 10 secs in case next trap is still being processed
+            zapi = ZabbixAPI(url=vaultdata['zabbix_url'], user=vaultdata['zabbix_user'], password=vaultdata['zabbix_passwd'])
+            if zapi:
+                fl.write("Closing Zabbix event {}\n".format(eventid))
+                try:
+                    result = zapi.do_request('event.acknowledge',
+                        {
+                            "eventids": eventid,
+                            "message": "PortSecurity Problem Resolved.",
+                            "action": 1
+                        })
+                    if result['id'] == '1':
+                        print("Event closing: Success")
+                        fl.write("Zabbix event {} has been closed successfully\n".format(eventid))
+                    else:
+                        fl.write("Zabbix event {} closing Failed\n".format(eventid))
 
-        # Closing the zabbix event using zabbixAPI 
-        from pyzabbix.api import ZabbixAPI, ZabbixAPIException
-        zapi = ZabbixAPI(url=vaultdata['zabbix_url'], user=vaultdata['zabbix_user'], password=vaultdata['zabbix_passwd'])
-        if zapi:
-            fl.write("Closing Zabbix event {}\n".format(eventid))
-            try:
-                result = zapi.do_request('event.acknowledge', 
-                    {
-                        "eventids": eventid,
-                        "message": "PortSecurity Problem Resolved.",
-                        "action": 1
-                    })
-                if result['id'] == '1':
-                    print("Event closing: Success")
-                    fl.write("Zabbix event {} has been closed successfully\n".format(eventid))
-                else:
-                    fl.write("Zabbix event {} closing Failed\n".format(eventid))
-                    
-            except ZabbixAPIException as err:
-                fl.write(str(err))
-                print("Event closing: Fail")
+                except ZabbixAPIException as err:
+                    fl.write(str(err))
+                    print("Event closing: Fail")
+    
+    except ValueError as e:
+        print(e)
+
+    except:
+        print("Cant't connect to the {} switch\n").format(hostname)
+    
