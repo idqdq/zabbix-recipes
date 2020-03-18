@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 the script is a traphandler that is being called from snmptrapd daemon
 The script does process port security snmp traps from cisco gears and hand it over to Zabbix.
@@ -27,17 +27,6 @@ IF-MIB::ifName.10028 FastEthernet0/28
 CISCO-PORT-SECURITY-MIB::cpsIfSecureLastMacAddress.10028 0:21:85:58:7e:d9
 ------------------------------------------------------------------
 
-BTW there is another trap exists but this is left for a future implementation
-------------------------------------------------------------------
-catalyst22
-UDP: [0.0.0.0]->[192.168.30.22]:-11723
-DISMAN-EVENT-MIB::sysUpTimeInstance 3:55:03.20
-SNMPv2-MIB::snmpTrapOID.0 CISCO-PORT-SECURITY-MIB::cpsTrunkSecureMacAddrViolation
-IF-MIB::ifName.10002 FastEthernet0/2
-CISCO-VTP-MIB::vtpVlanName.1.64 PRINTERS
-CISCO-PORT-SECURITY-MIB::cpsIfSecureLastMacAddress.10002 0:15:99:64:f5:2f
-------------------------------------------------------------------
-
 script first checks if hostname exists in Zabbix (using ZabbixAPI)
 and that hostname has an item with the key that match a trapkeyname_ (defined in a config.ini)
  
@@ -49,11 +38,13 @@ and finally it sends new value (ifName or ifName + mac-address) to the given hos
 """
 
 import sys, os, re, subprocess
-import ipaddress, logging.handlers, shlex
+import logging.handlers, shlex
 from pysnmp.hlapi import *
 from configparser import ConfigParser
-from zabbix.api import ZabbixAPI
-#from mysql.connector import MySQLConnection, Error
+from ipaddress import IPv4Address, AddressValueError
+#from zabbix.api import ZabbixAPI
+from pyzabbix import ZabbixAPI
+
 
 def read_config(filename, section):
     """ Read a configuration file and return a dictionary object
@@ -121,13 +112,13 @@ inp = sys.stdin
 hostname = inp.readline().strip()
 
 # the second line contains an IP address that should be fetched by regexp
-str = inp.readline()
-m = re.search("\[(.*)\]:[0-9]+->", str)
+trapstr = inp.readline()
+m = re.search("\[(.*)\]:[0-9]+->", trapstr)
 ip = m.group(1)
 
 try:
-    ipaddress.ip_network(unicode(ip))
-except:
+    ip = str(IPv4Address(ip))
+except AddressValueError as val:
     logging.exception("IP network address '%s' is not valid. Discarding trap", val)
     exit(1)
 
@@ -152,52 +143,40 @@ else:
 
 logging.debug("api_config: %s, %s, %si", api_config['zabbix_url'], api_config['zabbix_user'], api_config['zabbix_passwd'])
 
-# using ZabbixAPI check if a hostname and a corresponding item exists
-z = ZabbixAPI(api_config['zabbix_url'], user=api_config['zabbix_user'], password=api_config['zabbix_passwd'])
+#zabbix
+zapi = ZabbixAPI(api_config['zabbix_url'])
+zapi.session.verify = False
+zapi.login(api_config['zabbix_user'], api_config['zabbix_passwd'])
+hostid = zapi.host.get(filter={"host": hostname})[0]['hostid']
 
-hostid = z.get_id("host", item=hostname)
 if not hostid:
-    # device's hostname may not match to the one in zabbix
-    # in this case try to find out a hostname by the device's ipaddress
-    res = z.hostinterface.get(search={'ip':ip}, output=['hostid','interfaceid'])
-    if not res:
+    hostid = zapi.hostinterface.get(filter={"ip": ip}, output=['hostid'])[0]['hostid']
+    if not hostid:
         logging.error("there is no hostname %s in Zabbix. Discarding trap...", hostname)
         exit(1)
-
-    hostid = res[0]['hostid']
-
-    res = z.host.get(hostids=hostid, output=['hostid','name'])
-    if not res:
+    hostname = zapi.host.get(filter={"hostid": hostid})[0]['host']
+    if not hostname:
         logging.error("there is no hostname %s in Zabbix. Discarding trap...", hostname)
         exit(1)
-
-    hostname = res[0]['name']
     logging.info("zabbix related device's hostname  = %s", hostname)
-
 logging.info("hostid = %s", hostid)
 
-
-res = z.item.get(hostids=hostid, search={'key_':zabbix_config[trapkeyname]}, output=['itemid','name', 'key_'])
-if not res:
+key = zapi.item.get(filter={'hostid': hostid, 'key_': 'ErrRestrict'}, output=['key_', 'itemid', 'name'])[0]['key_']
+if not key:
     logging.error("there is no suitable items for hostname %s in Zabbix. Discarding trap...", hostname)
     exit(1)
-
-key = res[0]['key_']
 logging.debug("keyname = %s", key)
 
 # now parsing the trap information
 traplist = trapstr.split()
 
 if mode is "disable":
-    # Now lets find an interface name (ifName)
-    # retrieve trapkey and trapvalue elements from a trapvalue string
-    # for SNMPv2-MIB::snmpTrapOID type traps they seems to be always 3rd and penultimate words respectively
-    trapkey = traplist[3]
+    # Now lets find out an interface name (ifName)
+    # for the errdisable traps it can always be found within a penultimate word
     trapvalue = traplist[-2]
-    logging.debug("trapkey = %s", trapkey)
     logging.debug("trapvalue = %s", trapvalue)
 
-    # fetch ifindex from a trapvalue by splitting trapvalue with dots "." into a list and taking a penultimate list value
+    # now fetch ifindex from a trapvalue by splitting trapvalue with dots "." into a list and taking a penultimate list value
     ifIndex = trapvalue.split(".")[-2]
     logging.debug("ifIndex = %s", ifIndex)
 
@@ -215,7 +194,7 @@ elif mode is "restrict":
 
 if ifName:
     # Zabix has a limitation (20 chars) of lenght of values that are being shown in LastValues and LastIssues sections of a FrontEnd
-    # lets strip FastEthernet0/2 to Fa0/2 and GigabitEthernet3/0/45 to Gi3/0/45 for a conviniency    
+    # lets strip FastEthernet0/2 to Fa0/2 and GigabitEthernet3/0/45 to Gi3/0/45 for a conviniency
     regex = "[A-Za-z]+(\d+\/.*\d+)$"
     m = re.search(regex, ifName)
     if "Gigabit" in ifName:
@@ -250,5 +229,5 @@ except subprocess.CalledProcessError as e:
     logging.error(e)
     exit(1)
 
-retstr = "trap {} from host {} has been handled successfully".format(trapkey, hostname)
+retstr = "portsecurity trap from host {} has been handled successfully".format(hostname)
 logging.info(retstr)
