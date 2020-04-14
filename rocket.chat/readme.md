@@ -2,14 +2,14 @@
 Основная настройка требуется в *Zabbix*
 
 1. в MediaType создать новый тип: rocket.chat connector
-> тип: скрипт
-> script name: название этого файла (файл поместить в AlertScriptPath, сделать исполняемым от пользователя zabbix)
-> добавить два кастомных параметра:
->  - {ALERT.SENDTO}
+> тип: скрипт  
+> script name: название этого файла (файл поместить в AlertScriptPath, сделать исполняемым от пользователя zabbix)  
+> добавить два кастомных параметра:  
+>  - {ALERT.SENDTO}  
 >  - {ALERT.MESSAGE}
 
 2. Создать пользователя
-в Media в поле SendTo прописать url:
+в Media в поле SendTo прописать url:  
 > https://rocket.vbrr.ru/hooks/zCxLqnfA55H2dtpki/p482GBCKFW678fFe9oEPehsuw9Ge5Jtku7fwF4vwjbwNkNuX
 
 3. Создать **Actions** и прописать нижеслежующие строки DefaultMessage:
