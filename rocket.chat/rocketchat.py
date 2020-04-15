@@ -39,7 +39,7 @@ RECOVERY_TEXT = {"text":"**{HOST.NAME}** [OK] :white_check_mark: - {TRIGGER.NAME
                     "text": "",
                     "fields": [
                         {"title": "Важность", "value": "{TRIGGER.SEVERITY}"},
-                        {"title": "Время события", "value": "{EVENT.DATE} - {EVENT.TIME}"}
+                        {"title": "Время события", "value": "{EVENT.DATE} - {EVENT.TIME}"},
                         {"title": "Продолжительность события", "value": "{EVENT.AGE}"}
                         ]
                 }]
@@ -54,7 +54,7 @@ ACK_TEXT = {"text":"**{HOST.NAME}** [ACK] :warning: - {TRIGGER.NAME}",
                     "text": "{USER.FULLNAME} acknowledged problem at {ACK.DATE} {ACK.TIME} with the following message: {ACK.MESSAGE}",
                     "fields": [
                         {"title": "Важность", "value": "{TRIGGER.SEVERITY}"},
-                        {"title": "Время события", "value": "{EVENT.DATE} - {EVENT.TIME}"}
+                        {"title": "Время события", "value": "{EVENT.DATE} - {EVENT.TIME}"},
                         {"title": "Текущий статус", "value": "{EVENT.STATUS}"}
                         ]
                 }]
