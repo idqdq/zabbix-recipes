@@ -196,8 +196,8 @@ elif mode is "restrict":
     logging.info("ifName = %s; mac = %s", ifName, mac)
 
 elif mode is "restrict_trunk":
-    ifName = traplist2[5].strip('"')
-    mac = ':'.join(traplist2[-7:-1]).strip('"')
+    ifName = traplist[5].strip('"')
+    mac = ':'.join(traplist[-7:-1]).strip('"')
     logging.info("ifName = %s; mac = %s", ifName, mac)
     
 
