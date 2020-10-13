@@ -218,9 +218,9 @@ else:
 # --zabbix-server ZABBIX_SERVER --port ZABBIX_PORT --host hostname --key keyname --value keyvalue;
 
 zabbix_sender = zabbix_config['zabbix_sender']
-if mode is "disable":
+if mode == "disable":
     keyvalue = ifName
-elif mode is "restrict":
+elif mode in ("restrict", "restrict_trunk"):
     keyvalue = ifName + " " + mac   
 
 opt = "--zabbix-server {} --port {} --host {} --key '{}' --value '{}'".format(zabbix_config['server'],zabbix_config['port'], hostname, key, keyvalue)
