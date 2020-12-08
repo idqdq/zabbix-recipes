@@ -68,7 +68,12 @@ import napalm
 from datetime import datetime
 driver = napalm.get_network_driver("ios")
 
-with driver(hostname, vaultdata['user'], vaultdata['pass']) as device:
+# at least the catalyst25 has no ssh service 
+# so we need to make an exception for such devices
+telnet_devices = ['catalyst25']
+optional_args = {'transport': 'telnet'}  if hostname in telnet_devices else None
+
+with driver(hostname, vaultdata['user'], vaultdata['pass'], optional_args=optional_args) as device:
     try:
         device.open()
         res = device.cli(commands)
