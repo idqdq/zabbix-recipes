@@ -1,3 +1,5 @@
-ansible-vault==1.2.0
+ansible-vault>=1.2.0
 napalm==2.3.3
-netaddr==0.7.19
+netaddr>=0.7.19
+py-zabbix
+
