@@ -10,7 +10,7 @@
 
 2. Создать пользователя
 в Media в поле SendTo прописать url:  
-> https://rocket.vbrr.ru/hooks/zCxLqnfA55H2dtpki/p482GBCKFW678fFe9oEPehsuw9Ge5Jtku7fwF4vwjbwNkNuX
+> https://rocket.acme.ru/hooks/zCxLqnfA55H2dtpki/p482GBCKFW678fFe9oEPehsuw9Ge5Jtku7fwF4vwjbwNkNuX
 
 3. Создать **Actions** и прописать нижеслежующие строки DefaultMessage:
 
