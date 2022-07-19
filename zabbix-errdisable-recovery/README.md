@@ -1,5 +1,5 @@
 Скрипт разблокировки заблокированных механизмом **PortSecurity** портов на коммутаторах **Cisco** средствами _Zabbix_  
-Для чего он нужен написано в статье по [ссылке](http://dokuwiki.msk.vbrr.loc/doku.php?id=monitoring:zabbix_traps_portsecurity#%D0%BE%D1%87%D0%B8%D1%81%D1%82%D0%BA%D0%B0_%D0%B7%D0%B0%D0%B1%D0%BB%D0%BE%D0%BA%D0%B8%D1%80%D0%BE%D0%B2%D0%B0%D0%BD%D0%BD%D0%BE%D0%B3%D0%BE_%D0%BF%D0%BE%D1%80%D1%82%D0%B0_%D1%81%D1%80%D0%B5%D0%B4%D1%81%D1%82%D0%B2%D0%B0%D0%BC%D0%B8_zabbix)
+Для чего он нужен написано в статье по [ссылке](https://habr.com/en/post/491774/)
 
 ## Установка скрипта
 
